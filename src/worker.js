@@ -1,3 +1,5 @@
+const MODEL = "@cf/black-forest-labs/flux-2-klein-4b";
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -5,13 +7,11 @@ function json(data, status = 200) {
   });
 }
 
-function bytesToBase64(bytes) {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
+function base64ToBytes(value) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 export default {
@@ -19,7 +19,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
-      return json({ ok: true, service: "RenderFlow AI", engine: "@cf/runwayml/stable-diffusion-v1-5-img2img" });
+      return json({ ok: true, service: "RenderFlow AI", engine: MODEL });
     }
 
     if (url.pathname === "/api/render") {
@@ -42,47 +42,59 @@ export default {
         const preserve = form.get("preserve") === "true";
 
         const prompt = [
-          "Photorealistic architectural visualization based on the supplied reference image.",
-          "Style: " + style + ".",
+          "Create a high-quality photorealistic architectural visualization by EDITING the supplied reference image.",
+          "The supplied image is the source design. Keep the same building and composition.",
+          "Rendering style: " + style + ".",
+          "Camera/view: " + view + ".",
           "Lighting: " + lighting + ".",
-          "View: " + view + ".",
-          preserve ? "Preserve the original building design, silhouette, geometry, proportions, openings, structural layout, composition and camera viewpoint as closely as possible. Do not redesign the architecture." : "Create an architectural interpretation while respecting the reference image.",
-          "Use physically plausible materials, realistic reflections, natural shadows, detailed but restrained landscaping, professional architectural photography.",
+          preserve
+            ? "CRITICAL: preserve the exact building geometry, silhouette, proportions, number of floors, roof shapes, structural layout, openings, doors, windows, site layout and original camera angle. Do not redesign, add, remove, or move architectural elements. Only improve materials, lighting, textures, reflections, shadows and realistic context."
+            : "Respect the supplied design while creating a refined architectural interpretation.",
+          "Use physically plausible materials, realistic glass reflections, natural shadows and restrained professional landscaping.",
           instructions
         ].filter(Boolean).join(" ");
 
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        const result = await env.AI.run("@cf/runwayml/stable-diffusion-v1-5-img2img", {
-          prompt,
-          negative_prompt: "different building, changed geometry, distorted perspective, warped lines, extra floors, missing windows, text, watermark, logo, blurry, low quality, cartoon, illustration",
-          image_b64: bytesToBase64(bytes),
-          strength: preserve ? 0.35 : 0.65,
-          guidance: 7.5,
-          num_steps: 20
+        const outputWidth = Math.min(1920, Math.max(256, Number(form.get("outputWidth")) || 1024));
+        const outputHeight = Math.min(1920, Math.max(256, Number(form.get("outputHeight")) || 768));
+
+        // FLUX.2 [klein] 4B requires multipart input, including the reference image.
+        const modelForm = new FormData();
+        modelForm.append("prompt", prompt);
+        modelForm.append("input_image_0", file, file.name || "reference.jpg");
+        modelForm.append("width", String(outputWidth));
+        modelForm.append("height", String(outputHeight));
+        modelForm.append("guidance", "4");
+
+        // Let Response serialize FormData so the multipart boundary is included.
+        const multipartRequest = new Response(modelForm);
+        const result = await env.AI.run(MODEL, {
+          multipart: {
+            body: multipartRequest.body,
+            contentType: multipartRequest.headers.get("content-type")
+          }
         });
 
         if (result instanceof Response) {
+          if (!result.ok) {
+            const detail = await result.text();
+            return json({ error: "Workers AI request failed: " + detail.slice(0, 500) }, 502);
+          }
           const headers = new Headers(result.headers);
           headers.set("content-type", "image/png");
           headers.set("cache-control", "no-store");
-          return new Response(result.body, { status: result.status, headers });
+          return new Response(result.body, { status: 200, headers });
         }
-        if (result instanceof ReadableStream || result instanceof Uint8Array) {
-          return new Response(result, { headers: { "content-type": "image/png", "cache-control": "no-store" } });
+
+        const imageData = typeof result === "string" ? result : result?.image;
+        if (typeof imageData === "string" && imageData.length > 0) {
+          return new Response(base64ToBytes(imageData), {
+            headers: { "content-type": "image/png", "cache-control": "no-store" }
+          });
         }
-        if (typeof result === "string") {
-          const binary = atob(result);
-          const output = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) output[i] = binary.charCodeAt(i);
-          return new Response(output, { headers: { "content-type": "image/png", "cache-control": "no-store" } });
-        }
-        if (result && typeof result.image === "string") {
-          const binary = atob(result.image);
-          const output = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) output[i] = binary.charCodeAt(i);
-          return new Response(output, { headers: { "content-type": "image/png", "cache-control": "no-store" } });
-        }
-        return json({ error: "The rendering service returned an unexpected response." }, 502);
+
+        return json({
+          error: result?.error || "The rendering model returned an unexpected response."
+        }, 502);
       } catch (error) {
         console.error("RenderFlow generation error:", error);
         return json({ error: error?.message || "Rendering failed. Please try again." }, 500);
