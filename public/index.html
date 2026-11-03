@@ -26,7 +26,7 @@
 <div class="field full"><label data-i="preserve">Preserve original design</label><label class="check"><input type="checkbox" id="preserve" checked><span data-i="preservehint">Keep geometry, proportions, layout and camera angle unchanged.</span></label></div>
 <div class="field full"><label data-i="prompt">Additional instructions</label><textarea id="prompt" placeholder="e.g. Warm limestone, teak wood, subtle landscape lighting..."></textarea></div>
 </div></section>
-<aside class="rightcol"><section class="card"><div class="cardhead"><h2 data-i="output">02 — Render preview</h2><span class="step">RENDERFLOW AI</span></div><div class="result"><div><div class="spark">✳</div><h3 data-i="ready">Your next vision starts here.</h3><p data-i="readyhint">Upload a SketchUp screenshot and choose your rendering settings to prepare a render request.</p></div></div><button class="primary" id="generate" data-i="generate">✦ &nbsp; Generate render <span>→</span></button><div class="note" data-i="notice">AI rendering is not connected yet. This preview is the frontend; a secure image-generation service must be configured to produce renders.</div></section>
+<aside class="rightcol"><section class="card"><div class="cardhead"><h2 data-i="output">02 — Render preview</h2><span class="step">RENDERFLOW AI</span></div><div class="result" id="result"><div id="resultcopy"><div class="spark">✳</div><h3 data-i="ready">Your next vision starts here.</h3><p data-i="readyhint">Upload a SketchUp screenshot and choose your rendering settings to prepare a render request.</p></div><img id="rendered" class="preview" alt="Generated architectural render" style="display:none;max-height:520px"></div><button class="primary" id="generate" data-i="generate">✦ &nbsp; Generate render <span>→</span></button><div class="note" id="notice" data-i="notice">Powered by Cloudflare Workers AI. Upload a reference image to generate an architectural render.</div><a id="download" class="quiet" href="#" download="renderflow-result.png" style="display:none;margin:0 18px 18px;text-align:center;text-decoration:none">Download rendered image ↓</a></section>
 <section class="card"><div class="cardhead"><h2 data-i="quick">Quick style presets</h2><span class="step">01—06</span></div><div class="presets"><button class="chip active" data-style="Photorealistic">Photoreal</button><button class="chip" data-style="Minimalist contemporary">Minimal</button><button class="chip" data-style="Tropical modern">Tropical</button><button class="chip" data-style="Khmer-inspired contemporary">Khmer modern</button><button class="chip" data-style="Warm natural materials">Natural</button><button class="chip" data-style="Competition board style">Board</button></div></section></aside>
 </main>
 <footer><span>© 2026 RENDERFLOW AI · Built for architectural creators.</span><span data-i="footer">A creative tool for visual exploration — not a substitute for technical documentation.</span></footer>
@@ -43,6 +43,41 @@ $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;if(!['image/png','
 ['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('drag')}));
 $('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$('file').files=dt.files;$('file').dispatchEvent(new Event('change'));}});
 document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('style').value=b.dataset.style;});
-$('generate').onclick=()=>{if(!$('file').files.length){say(lang==='km'?'សូមបញ្ចូលរូបភាព SketchUp ជាមុនសិន។':'Please upload a SketchUp image first.');return;}say(lang==='km'?'រូបភាពត្រូវបានត្រៀមរួចរាល់ ប៉ុន្តែ AI Render មិនទាន់ភ្ជាប់ទេ។':'Your render settings are ready, but the AI rendering service is not connected yet.');};
+$('generate').onclick=async()=>{
+  const file=$('file').files[0];
+  if(!file){say(lang==='km'?'សូមបញ្ចូលរូបភាព SketchUp ជាមុនសិន។':'Please upload a SketchUp image first.');return;}
+  const btn=$('generate'), notice=$('notice'), download=$('download'), rendered=$('rendered'), copy=$('resultcopy');
+  const form=new FormData();
+  form.append('image',file);
+  form.append('style',$('style').value);
+  form.append('view',$('view').value);
+  form.append('lighting',$('lighting').value);
+  form.append('quality',$('quality').value);
+  form.append('preserve',$('preserve').checked?'true':'false');
+  form.append('instructions',$('prompt').value);
+  btn.disabled=true;btn.textContent=lang==='km'?'កំពុងបង្កើតរូបភាព...':'Rendering your image...';
+  notice.textContent=lang==='km'?'សូមរង់ចាំ។ ការបង្កើតរូបភាពអាចចំណាយពេលបន្តិច។':'Please wait. Image generation may take a little while.';
+  download.style.display='none';
+  try{
+    const response=await fetch('/api/render',{method:'POST',body:form});
+    if(!response.ok){
+      let message='Rendering failed ('+response.status+').';
+      try{const data=await response.json();if(data.error)message=data.error;}catch{}
+      throw new Error(message);
+    }
+    const blob=await response.blob();
+    if(!blob.type.startsWith('image/'))throw new Error('The AI service did not return an image. Please try again.');
+    const resultUrl=URL.createObjectURL(blob);
+    rendered.src=resultUrl;rendered.style.display='block';copy.style.display='none';
+    download.href=resultUrl;download.style.display='block';
+    notice.textContent=lang==='km'?'បានបង្កើតរូបភាពរួចរាល់។ អ្នកអាចទាញយកបាន។':'Render complete. Your image is ready to download.';
+    say(lang==='km'?'បង្កើតរូបភាពបានជោគជ័យ!':'Render generated successfully!');
+  }catch(error){
+    notice.textContent=error.message;
+    say(error.message);
+  }finally{
+    btn.disabled=false;btn.innerHTML='✦ &nbsp; Generate render <span>→</span>';
+  }
+};
 </script>
 </body></html>
