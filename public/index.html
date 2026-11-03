@@ -43,22 +43,58 @@ $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;if(!['image/png','
 ['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('drag')}));
 $('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$('file').files=dt.files;$('file').dispatchEvent(new Event('change'));}});
 document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('style').value=b.dataset.style;});
+async function prepareFluxReference(file) {
+  const bitmap = await createImageBitmap(file);
+  const originalWidth = bitmap.width;
+  const originalHeight = bitmap.height;
+
+  // FLUX.2 Klein accepts reference images smaller than 512 x 512.
+  const scale = Math.min(1, 511 / Math.max(originalWidth, originalHeight));
+  const width = Math.max(1, Math.round(originalWidth * scale));
+  const height = Math.max(1, Math.round(originalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(result => result ? resolve(result) : reject(new Error("Could not prepare the reference image.")), "image/jpeg", 0.92);
+  });
+
+  const outputScale = Math.min(1536 / originalWidth, 1536 / originalHeight);
+  const outputWidth = Math.max(256, Math.round(originalWidth * outputScale));
+  const outputHeight = Math.max(256, Math.round(originalHeight * outputScale));
+
+  return {
+    file: new File([blob], "renderflow-reference.jpg", { type: "image/jpeg" }),
+    outputWidth,
+    outputHeight
+  };
+}
+
 $('generate').onclick=async()=>{
   const file=$('file').files[0];
   if(!file){say(lang==='km'?'សូមបញ្ចូលរូបភាព SketchUp ជាមុនសិន។':'Please upload a SketchUp image first.');return;}
   const btn=$('generate'), notice=$('notice'), download=$('download'), rendered=$('rendered'), copy=$('resultcopy');
-  const form=new FormData();
-  form.append('image',file);
-  form.append('style',$('style').value);
-  form.append('view',$('view').value);
-  form.append('lighting',$('lighting').value);
-  form.append('quality',$('quality').value);
-  form.append('preserve',$('preserve').checked?'true':'false');
-  form.append('instructions',$('prompt').value);
-  btn.disabled=true;btn.textContent=lang==='km'?'កំពុងបង្កើតរូបភាព...':'Rendering your image...';
-  notice.textContent=lang==='km'?'សូមរង់ចាំ។ ការបង្កើតរូបភាពអាចចំណាយពេលបន្តិច។':'Please wait. Image generation may take a little while.';
+  btn.disabled=true;btn.textContent=lang==='km'?'កំពុងរៀបចំរូបភាព...':'Preparing your image...';
+  notice.textContent=lang==='km'?'សូមរង់ចាំ។':'Preparing the reference image for rendering.';
   download.style.display='none';
   try{
+    const prepared=await prepareFluxReference(file);
+    const form=new FormData();
+    form.append('image',prepared.file);
+    form.append('outputWidth',String(prepared.outputWidth));
+    form.append('outputHeight',String(prepared.outputHeight));
+    form.append('style',$('style').value);
+    form.append('view',$('view').value);
+    form.append('lighting',$('lighting').value);
+    form.append('quality',$('quality').value);
+    form.append('preserve',$('preserve').checked?'true':'false');
+    form.append('instructions',$('prompt').value);
+    btn.textContent=lang==='km'?'កំពុងបង្កើតរូបភាព...':'Rendering your image...';
+    notice.textContent=lang==='km'?'សូមរង់ចាំ។ ការបង្កើតរូបភាពអាចចំណាយពេលបន្តិច។':'Please wait. FLUX.2 is generating your architectural render.';
     const response=await fetch('/api/render',{method:'POST',body:form});
     if(!response.ok){
       let message='Rendering failed ('+response.status+').';
