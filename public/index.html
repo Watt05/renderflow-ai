@@ -204,6 +204,56 @@ async function prepareFluxReference(file, quality) {
   };
 }
 
+async function reinforceOriginalGeometry(renderBlob, originalFile, strength=0.28) {
+  const [renderBitmap, sourceBitmap] = await Promise.all([
+    createImageBitmap(renderBlob),
+    createImageBitmap(originalFile)
+  ]);
+  const width = renderBitmap.width, height = renderBitmap.height;
+  const base = document.createElement('canvas');
+  base.width = width; base.height = height;
+  const baseCtx = base.getContext('2d', { willReadFrequently: true });
+  baseCtx.drawImage(renderBitmap, 0, 0, width, height);
+  const output = baseCtx.getImageData(0, 0, width, height);
+
+  const source = document.createElement('canvas');
+  source.width = width; source.height = height;
+  const sourceCtx = source.getContext('2d', { willReadFrequently: true });
+  sourceCtx.drawImage(sourceBitmap, 0, 0, width, height);
+  const pixels = sourceCtx.getImageData(0, 0, width, height).data;
+  const gray = new Uint8Array(width * height);
+  for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+    gray[i] = Math.round(pixels[p] * 0.299 + pixels[p + 1] * 0.587 + pixels[p + 2] * 0.114);
+  }
+
+  // Reapply only dark, high-contrast source edges. This subtly anchors the
+  // rendered image to the exact linework and locations in the uploaded view.
+  const data = output.data;
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const i = y * width + x;
+      const tl=gray[i-width-1], tc=gray[i-width], tr=gray[i-width+1];
+      const ml=gray[i-1], mr=gray[i+1];
+      const bl=gray[i+width-1], bc=gray[i+width], br=gray[i+width+1];
+      const gx = -tl + tr - 2*ml + 2*mr - bl + br;
+      const gy = -tl - 2*tc - tr + bl + 2*bc + br;
+      const magnitude = Math.sqrt(gx*gx + gy*gy) / 4;
+      if (magnitude < 28) continue;
+      const neighborhood = (tl+tc+tr+ml+mr+bl+bc+br) / 8;
+      const darkness = neighborhood - gray[i];
+      if (darkness < 7 || gray[i] > 175) continue;
+      const alpha = Math.min(0.34, ((darkness - 6) / 90) * strength);
+      const p = i * 4, keep = 1 - alpha;
+      data[p] *= keep; data[p+1] *= keep; data[p+2] *= keep;
+    }
+  }
+  baseCtx.putImageData(output, 0, 0);
+  renderBitmap.close?.(); sourceBitmap.close?.();
+  return await new Promise((resolve, reject) => {
+    base.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not finalize the geometry-preserved render.')), 'image/png');
+  });
+}
+
 const compareStage=$('compareStage'),compareRange=$('compareRange');
 function setCompareSplit(value){const v=Math.max(0,Math.min(100,Number(value)));compareStage.style.setProperty('--split',v+'%');compareRange.value=v;compareStage.setAttribute('aria-valuenow',v);}
 compareRange.addEventListener('input',e=>setCompareSplit(e.target.value));
@@ -258,7 +308,7 @@ $('generate').onclick=async()=>{
    form.append('instructions',directionBrief);
    const response=await fetch('/api/render',{method:'POST',body:form});
    if(!response.ok){let message='Rendering failed ('+response.status+').';try{const data=await response.json();if(data.error)message=data.error;}catch{}throw new Error(message);}
-   const blob=await response.blob();if(!blob.type.startsWith('image/'))throw new Error('The AI service did not return an image. Please try again.');
+   const rawBlob=await response.blob();if(!rawBlob.type.startsWith('image/'))throw new Error('The AI service did not return an image. Please try again.');const blob=$('preserve').checked?await reinforceOriginalGeometry(rawBlob,file,0.28):rawBlob;
    const url=URL.createObjectURL(blob);generatedVariants.push({blob,url,name:directions[i].name});
    await saveRenderToHistory(blob,file,$('style').value+' · '+directions[i].name);
    $('variationGallery').append(buildVariationCard(generatedVariants[i],i));
@@ -266,7 +316,7 @@ $('generate').onclick=async()=>{
    if(i===0){rendered.src=url;rendered.style.display='block';copy.style.display='none';$('compareOriginal').src=originalUrl;$('compareGenerated').src=url;$('compareWrap').style.display='block';$('download').href=url;$('download').download='wrenderflow-concept-1.png';$('download').style.display='block';}
   }
   activateVariant(0);
-  notice.textContent=lang==='km'?'បានបង្កើតរូបភាពរួចរាល់។':'All '+count+' concept'+(count===1?'':'s')+' are ready. Select a direction above to compare it with your original.';
+  notice.textContent=lang==='km'?'បានបង្កើតរូបភាពរួចរាល់។':'All '+count+' concept'+(count===1?'':'s')+' are ready. The original linework was reinforced to help retain your building geometry. Select a concept to compare it with your original.';
   say('WRENDERFLOW created '+count+' architectural concept'+(count===1?'':'s')+'.');
  }catch(error){notice.textContent=error.message;say(error.message);}
  finally{btn.disabled=false;btn.innerHTML='✦ &nbsp; Generate concepts <span>→</span>';}
