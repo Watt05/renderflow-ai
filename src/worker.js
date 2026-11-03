@@ -48,14 +48,15 @@ export default {
           : "Professional architectural visualization with physically based materials, believable roughness and reflectivity, realistic glass, stone, timber, metal, refined landscaping, balanced exposure and natural color grading.";
 
         const prompt = [
-          "Create a high-quality photorealistic architectural visualization by EDITING the supplied reference image.",
-          "The supplied image is the source design. Keep the same building and composition.",
+          "EDIT the supplied reference image as an architectural material-and-light enhancement, not as a new design generation.",
+          "IMAGE 0 IS THE AUTHORITATIVE DESIGN. Maintain one-to-one spatial correspondence with the reference: same framing, crop, camera position, perspective, horizon, silhouette and placement of every visible element.",
+          "This is not a redesign. Do not reinterpret the architecture, simplify it, complete hidden areas, or invent missing details.",
           "Rendering style: " + style + ".",
           "Camera/view: " + view + ".",
           "Lighting: " + lighting + ".",
           styleGuidance,
           preserve
-            ? "CRITICAL: preserve the exact building geometry, silhouette, proportions, number of floors, roof shapes, structural layout, openings, doors, windows, site layout and original camera angle. Do not redesign, add, remove, or move architectural elements. Only improve materials, lighting, textures, reflections, shadows and realistic context."
+            ? "HARD GEOMETRY LOCK: preserve the exact pixel-space position and shape of the building silhouette, every roof edge, column, beam, wall, stair, railing, door, window, opening, furniture item and visible site element. Keep the exact number of floors and all proportions. Do not add, remove, move, resize, straighten, curve, or replace any architectural element. No crop, zoom, pan, lens change, perspective correction or camera shift. Change ONLY the surface appearance of existing surfaces: material texture, roughness, color, glass reflections, illumination and shadows. Keep the existing background and landscape; do not add new plants, people, objects or context unless explicitly requested."
             : "Respect the supplied design while creating a refined architectural interpretation.",
           "Use physically plausible materials, realistic glass reflections, natural shadows, accurate material scale, detailed but restrained landscaping, subtle contact shadows, coherent perspective and professional architectural photography composition.",
           instructions
@@ -70,7 +71,7 @@ export default {
         modelForm.append("input_image_0", file, file.name || "reference.jpg");
         modelForm.append("width", String(outputWidth));
         modelForm.append("height", String(outputHeight));
-        modelForm.append("guidance", "4");
+        modelForm.append("guidance", preserve ? "2.5" : "4");
 
         // Let Response serialize FormData so the multipart boundary is included.
         const multipartRequest = new Response(modelForm);
