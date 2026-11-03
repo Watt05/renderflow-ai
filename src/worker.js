@@ -29,6 +29,9 @@ function cookie(request, name) {
 function sessionCookie(value, maxAge) {
   return "wf_session=" + encodeURIComponent(value) + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=" + maxAge;
 }
+function oauthCookie(value, maxAge) {
+  return "wf_oauth_state=" + encodeURIComponent(value) + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=" + maxAge;
+}
 function validOrigin(request) {
   const origin = request.headers.get("Origin");
   return !origin || origin === new URL(request.url).origin;
@@ -39,6 +42,39 @@ async function currentUser(request, env) {
   if (!token) return null;
   const row = await env.DB.prepare("SELECT users.id, users.email FROM sessions JOIN users ON users.id=sessions.user_id WHERE sessions.token_hash=? AND sessions.expires_at>?").bind(await digest(token), Math.floor(Date.now()/1000)).first();
   return row || null;
+}
+async function googleAuthRoute(request, env, url) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({error:"Google sign-in is not configured yet."},503);
+  const redirectUri = new URL("/api/auth/google/callback", url.origin).toString();
+  if (url.pathname === "/api/auth/google" && request.method === "GET") {
+    const state=randomToken(24), target=new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    target.searchParams.set("client_id",env.GOOGLE_CLIENT_ID); target.searchParams.set("redirect_uri",redirectUri);
+    target.searchParams.set("response_type","code"); target.searchParams.set("scope","openid email profile");
+    target.searchParams.set("state",state); target.searchParams.set("prompt","select_account");
+    return new Response(null,{status:302,headers:{"location":target.toString(),"set-cookie":oauthCookie(state,600),"cache-control":"no-store"}});
+  }
+  if (url.pathname !== "/api/auth/google/callback") return json({error:"Not found."},404);
+  const state=url.searchParams.get("state")||"";
+  if (!state || state!==cookie(request,"wf_oauth_state") || !url.searchParams.get("code")) return new Response("Google sign-in could not be verified. Please try again.",{status:400,headers:{"set-cookie":oauthCookie("",0)}});
+  if (!env.DB) return new Response("Account database is not configured. Please continue as a guest.",{status:503,headers:{"set-cookie":oauthCookie("",0)}});
+  const tr=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code:url.searchParams.get("code"),client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,redirect_uri:redirectUri,grant_type:"authorization_code"})});
+  const tokens=await tr.json();
+  if (!tr.ok || !tokens.access_token) return new Response("Google authentication failed. Please try again.",{status:401,headers:{"set-cookie":oauthCookie("",0)}});
+  const pr=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{authorization:"Bearer "+tokens.access_token}});
+  const profile=await pr.json();
+  if (!pr.ok || !profile.sub || !profile.email || profile.email_verified!==true) return new Response("Google did not provide a verified email address.",{status:401,headers:{"set-cookie":oauthCookie("",0)}});
+  let user=await env.DB.prepare("SELECT id,email FROM users WHERE google_sub=?").bind(profile.sub).first();
+  if (!user) {
+    user=await env.DB.prepare("SELECT id,email FROM users WHERE email=?").bind(String(profile.email).toLowerCase()).first();
+    if (user) await env.DB.prepare("UPDATE users SET google_sub=? WHERE id=?").bind(profile.sub,user.id).run();
+    else { const id=crypto.randomUUID(),salt=randomToken(16),hash=await passwordHash(randomToken(48),salt);
+      await env.DB.prepare("INSERT INTO users (id,email,password_hash,password_salt,google_sub,created_at) VALUES (?,?,?,?,?,?)").bind(id,String(profile.email).toLowerCase(),hash,salt,profile.sub,Math.floor(Date.now()/1000)).run();
+      user={id,email:String(profile.email).toLowerCase()};
+    }
+  }
+  const session=randomToken();
+  await env.DB.prepare("INSERT INTO sessions (id,user_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?)").bind(crypto.randomUUID(),user.id,await digest(session),Math.floor(Date.now()/1000)+SESSION_SECONDS,Math.floor(Date.now()/1000)).run();
+  return new Response(null,{status:302,headers:{"location":url.origin+"/","set-cookie":[sessionCookie(session,SESSION_SECONDS),oauthCookie("",0)],"cache-control":"no-store"}});
 }
 async function authRoute(request, env, path) {
   if (!env.DB) return json({ error: "Account service is not configured yet. Please continue as a guest." }, 503);
@@ -87,7 +123,7 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === "/api/health") return json({ ok: true, service: "WRENDERFLOW", engine: MODEL, accounts: !!env.DB });
-      if (url.pathname.startsWith("/api/auth/")) return await authRoute(request, env, url.pathname);
+      if (url.pathname === "/api/auth/google" || url.pathname === "/api/auth/google/callback") return await googleAuthRoute(request, env, url);\n      if (url.pathname.startsWith("/api/auth/")) return await authRoute(request, env, url.pathname);
       if (url.pathname === "/api/render") {
         if (request.method !== "POST") return json({ error: "Use POST for rendering." }, 405);
         if (!env.AI) return json({ error: "Workers AI binding is missing. Add the AI binding and redeploy." }, 503);
