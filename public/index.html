@@ -13,6 +13,8 @@
 /* Design direction studio */
 .direction-panel{grid-column:1/-1;border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--soft);margin-top:2px}.direction-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:13px}.direction-head strong{font-size:13px}.direction-head small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.direction-badge{font-size:9px;font-weight:800;letter-spacing:.8px;padding:5px 8px;border-radius:20px;background:var(--accent);color:#1b2412;white-space:nowrap}.direction-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}.direction-preset{min-height:66px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:9px;text-align:left;transition:transform .2s,border-color .2s,box-shadow .2s}.direction-preset:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 7px 18px #0000000d}.direction-preset.active{border-color:#91c94a;box-shadow:inset 0 0 0 1px #91c94a;background:color-mix(in srgb,var(--accent) 12%,var(--panel))}.direction-preset b{display:block;font-size:11px}.direction-preset span{display:block;font-size:10px;color:var(--muted);margin-top:3px}.direction-selects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.direction-selects label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px}.direction-selects select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);padding:10px 8px;font-size:11px}.direction-note{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5}@media(max-width:680px){.direction-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.direction-selects{grid-template-columns:1fr}.direction-head{flex-direction:column}}
 
+/* Structure lock control */
+.structure-lock-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.structure-lock-head label{font-size:11px;font-weight:800;letter-spacing:.06em}.structure-lock-head output{font-size:11px;font-weight:850;color:#709f32;background:color-mix(in srgb,var(--accent) 22%,var(--panel));padding:5px 9px;border-radius:20px}.strength-range{width:100%;margin:13px 0 4px;accent-color:#91c94a;cursor:pointer}.strength-scale{display:flex;justify-content:space-between;color:var(--muted);font-size:9px}.structure-lock-note{display:block;margin-top:9px;color:var(--muted);font-size:10px;line-height:1.55}
 /* Render library and prompt assistant */
 .prompt-assistant{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px}
 .prompt-assistant small{font-size:10px;color:var(--muted);line-height:1.5}
@@ -128,6 +130,12 @@
 <div class="field"><label data-i="lighting">Lighting</label><select id="lighting"><option>Natural daylight</option><option>Golden hour</option><option>Overcast soft light</option><option>Blue hour</option><option>Warm interior lighting</option><option>Night scene</option></select></div>
 <div class="field"><label data-i="quality">Output quality</label><select id="quality"><option>Standard</option><option>High</option><option>Ultra (when supported)</option></select></div>
 <div class="field full"><label data-i="preserve">Preserve original design</label><label class="check"><input type="checkbox" id="preserve" checked><span data-i="preservehint">Keep geometry, proportions, layout and camera angle unchanged.</span></label></div>
+<div class="field full" id="structureLockPanel">
+ <div class="structure-lock-head"><label for="preserveStrength">STRUCTURE LOCK STRENGTH</label><output id="preserveStrengthValue">85%</output></div>
+ <input id="preserveStrength" class="strength-range" type="range" min="0" max="100" value="85" step="5">
+ <div class="strength-scale"><span>Creative freedom</span><span>Strict preservation</span></div>
+ <small class="structure-lock-note">Higher values prioritize the original rooflines, openings, floor count, proportions and camera framing. AI image generation can still introduce small deviations.</small>
+</div>
 <div class="field full"><label data-i="prompt">Additional instructions</label><textarea id="prompt" placeholder="e.g. Warm limestone, teak wood, subtle landscape lighting..."></textarea></div><div class="field full prompt-assistant"><small>Need help describing the look? Build a clear architectural brief from your selected settings.</small><button type="button" class="assist-btn" id="composeBrief">✦ Build design brief</button></div>
 <div class="direction-panel" id="directionPanel">
  <div class="direction-head"><div><strong>✦ Design direction studio</strong><small>Choose a visual direction, then fine-tune the materials and atmosphere.</small></div><span class="direction-badge">CREATIVE CONTROLS</span></div>
@@ -277,6 +285,9 @@ async function reinforceOriginalGeometry(renderBlob, originalFile, strength=0.28
   });
 }
 
+const preserveToggle=$('preserve'),preserveStrength=$('preserveStrength'),preserveStrengthValue=$('preserveStrengthValue');
+function syncStructureLock(){preserveStrength.disabled=!preserveToggle.checked;preserveStrengthValue.textContent=(preserveToggle.checked?preserveStrength.value:0)+'%';preserveStrength.closest('#structureLockPanel').style.opacity=preserveToggle.checked?'1':'.48';}
+preserveStrength.addEventListener('input',syncStructureLock);preserveToggle.addEventListener('change',syncStructureLock);syncStructureLock();
 const compareStage=$('compareStage'),compareRange=$('compareRange');
 function setCompareSplit(value){const v=Math.max(0,Math.min(100,Number(value)));compareStage.style.setProperty('--split',v+'%');compareRange.value=v;compareStage.setAttribute('aria-valuenow',v);}
 compareRange.addEventListener('input',e=>setCompareSplit(e.target.value));
@@ -327,12 +338,12 @@ $('generate').onclick=async()=>{
    setRenderProgress('Rendering concept '+(i+1)+' of '+count+' — enhancing materials and lighting while preserving your design…');btn.textContent=lang==='km'?('កំពុងបង្កើតគំនិត '+(i+1)+'/'+count):('Creating concept '+(i+1)+' of '+count+'…');
    notice.textContent=lang==='km'?('កំពុងបង្កើតគំនិត '+(i+1)+'/'+count+' សូមរង់ចាំ។'):('WRENDERFLOW is creating concept '+(i+1)+' of '+count+'. You can keep this page open.');
    const form=new FormData();form.append('image',prepared.file);form.append('outputWidth',String(prepared.outputWidth));form.append('outputHeight',String(prepared.outputHeight));
-   form.append('style',$('style').value);form.append('view',$('view').value);form.append('lighting',$('lighting').value);form.append('quality',$('quality').value);form.append('preserve',$('preserve').checked?'true':'false');
+   form.append('style',$('style').value);form.append('view',$('view').value);form.append('lighting',$('lighting').value);form.append('quality',$('quality').value);form.append('preserve',$('preserve').checked?'true':'false');form.append('preserveStrength',$('preserve').checked?$('preserveStrength').value:'0');
    const directionBrief=['Material palette: '+$('materialDirection').value+'.','Landscape and context: '+$('landscapeDirection').value+'.','Atmosphere: '+$('atmosphereDirection').value+'.',$('prompt').value,directions[i].brief,'This is a visualization of the supplied reference, not a redesign. Do not invent floors, change roof geometry, distort perspective, move openings, or add unsupported architectural elements.'].filter(Boolean).join(' ');
    form.append('instructions',directionBrief);
    setRenderProgress('AI is rendering concept '+(i+1)+' of '+count+'… This can take a little while.');const response=await fetch('/api/render',{method:'POST',body:form});
    if(!response.ok){let message='Rendering failed ('+response.status+').';try{const data=await response.json();if(data.error)message=data.error;}catch{}throw new Error(message);}
-   setRenderProgress('Finishing concept '+(i+1)+' of '+count+' and refining original architectural edges…');const rawBlob=await response.blob();if(!rawBlob.type.startsWith('image/'))throw new Error('The AI service did not return an image. Please try again.');const blob=$('preserve').checked?await reinforceOriginalGeometry(rawBlob,file,0.28):rawBlob;
+   setRenderProgress('Finishing concept '+(i+1)+' of '+count+' and refining original architectural edges…');const rawBlob=await response.blob();if(!rawBlob.type.startsWith('image/'))throw new Error('The AI service did not return an image. Please try again.');const blob=$('preserve').checked?await reinforceOriginalGeometry(rawBlob,file,Number($('preserveStrength').value)/100):rawBlob;
    const url=URL.createObjectURL(blob);generatedVariants.push({blob,url,name:directions[i].name});
    await saveRenderToHistory(blob,file,$('style').value+' · '+directions[i].name);
    $('variationGallery').append(buildVariationCard(generatedVariants[i],i));
