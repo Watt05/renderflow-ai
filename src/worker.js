@@ -38,7 +38,9 @@ export default {
         const style = String(form.get("style") || "Photorealistic").slice(0, 80);
         const view = String(form.get("view") || "Keep original camera").slice(0, 80);
         const lighting = String(form.get("lighting") || "Natural daylight").slice(0, 80);
-        const instructions = String(form.get("instructions") || "").slice(0, 1200);
+        const instructions = String(form.get("instructions") || "").slice(0, 1800);\n        const materialPreset = String(form.get("materialPreset") || "").slice(0, 700);
+        const lightingPreset = String(form.get("lightingPreset") || lighting).slice(0, 300);
+
         const preserve = form.get("preserve") === "true";
         const preserveStrength = Math.max(0, Math.min(100, Number(form.get("preserveStrength")) || 0));
 
@@ -54,7 +56,7 @@ export default {
           "This is not a redesign. Do not reinterpret the architecture, simplify it, complete hidden areas, or invent missing details.",
           "Rendering style: " + style + ".",
           "Camera/view: " + view + ".",
-          "Lighting: " + lighting + ".",
+          "Lighting: " + lighting + ".",\n          "Material direction: " + materialPreset + ". Apply the selected material only to appropriate existing surfaces and elements. Preserve the reference image material boundaries and do not convert the whole building into one material. Do not create new cladding, windows, screens, frames or architectural details.",\n          "Lighting treatment: " + lightingPreset + ". Match the selected atmosphere while keeping believable exposure, physically plausible shadow direction, realistic interior/exterior light balance, and preserving all original geometry.",
           styleGuidance,
           preserve
             ? (preserveStrength >= 80
