@@ -166,6 +166,16 @@ async function prepareFluxReference(file, quality) {
   };
 }
 
+const compareStage=$('compareStage'),compareRange=$('compareRange');
+function setCompareSplit(value){const v=Math.max(0,Math.min(100,Number(value)));compareStage.style.setProperty('--split',v+'%');compareRange.value=v;compareStage.setAttribute('aria-valuenow',v);}
+compareRange.addEventListener('input',e=>setCompareSplit(e.target.value));
+function comparePointerMove(e){const rect=compareStage.getBoundingClientRect();setCompareSplit((e.clientX-rect.left)/rect.width*100);}
+compareStage.addEventListener('pointerdown',e=>{if(compareStage.classList.contains('compare-side'))return;compareStage.classList.add('is-dragging');compareStage.setPointerCapture(e.pointerId);comparePointerMove(e);});
+compareStage.addEventListener('pointermove',e=>{if(compareStage.hasPointerCapture(e.pointerId))comparePointerMove(e);});
+['pointerup','pointercancel'].forEach(type=>compareStage.addEventListener(type,()=>compareStage.classList.remove('is-dragging')));
+compareStage.addEventListener('keydown',e=>{let v=Number(compareRange.value);if(e.key==='ArrowLeft')v-=2;else if(e.key==='ArrowRight')v+=2;else if(e.key==='Home')v=0;else if(e.key==='End')v=100;else return;e.preventDefault();setCompareSplit(v);});
+$('modeSwipe').addEventListener('click',()=>{compareStage.classList.remove('compare-side');$('modeSwipe').classList.add('active');$('modeSide').classList.remove('active');$('compareControls').style.display='flex';$('compareHelp').textContent='Drag the glowing handle or swipe directly across the image.';compareRange.disabled=false;});
+$('modeSide').addEventListener('click',()=>{compareStage.classList.add('compare-side');$('modeSide').classList.add('active');$('modeSwipe').classList.remove('active');$('compareControls').style.display='none';$('compareHelp').textContent='Compare both full images side by side. Switch back to Swipe for an interactive reveal.';compareRange.disabled=true;});
 let generatedVariants=[];
 function activateVariant(index){
  const item=generatedVariants[index];if(!item)return;
