@@ -74,7 +74,10 @@ async function googleAuthRoute(request, env, url) {
   }
   const session=randomToken();
   await env.DB.prepare("INSERT INTO sessions (id,user_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?)").bind(crypto.randomUUID(),user.id,await digest(session),Math.floor(Date.now()/1000)+SESSION_SECONDS,Math.floor(Date.now()/1000)).run();
-  return new Response(null,{status:302,headers:{"location":url.origin+"/","set-cookie":[sessionCookie(session,SESSION_SECONDS),oauthCookie("",0)],"cache-control":"no-store"}});
+  const headers = new Headers({"location":url.origin+"/","cache-control":"no-store"});
+  headers.append("set-cookie",sessionCookie(session,SESSION_SECONDS));
+  headers.append("set-cookie",oauthCookie("",0));
+  return new Response(null,{status:302,headers});
 }
 async function authRoute(request, env, path) {
   if (!env.DB) return json({ error: "Account service is not configured yet. Please continue as a guest." }, 503);
@@ -123,7 +126,8 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === "/api/health") return json({ ok: true, service: "WRENDERFLOW", engine: MODEL, accounts: !!env.DB });
-      if (url.pathname === "/api/auth/google" || url.pathname === "/api/auth/google/callback") return await googleAuthRoute(request, env, url);\n      if (url.pathname.startsWith("/api/auth/")) return await authRoute(request, env, url.pathname);
+      if (url.pathname === "/api/auth/google" || url.pathname === "/api/auth/google/callback") return await googleAuthRoute(request, env, url);
+      if (url.pathname.startsWith("/api/auth/")) return await authRoute(request, env, url.pathname);
       if (url.pathname === "/api/render") {
         if (request.method !== "POST") return json({ error: "Use POST for rendering." }, 405);
         if (!env.AI) return json({ error: "Workers AI binding is missing. Add the AI binding and redeploy." }, 503);
