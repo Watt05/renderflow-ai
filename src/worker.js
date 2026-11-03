@@ -19,7 +19,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
-      return json({ ok: true, service: "RenderFlow AI", engine: MODEL });
+      return json({ ok: true, service: "WRENDERFLOW", engine: MODEL });
     }
 
     if (url.pathname === "/api/render") {
@@ -92,18 +92,30 @@ export default {
           return new Response(result.body, { status: 200, headers });
         }
 
-        const imageData = typeof result === "string" ? result : result?.image;
+        const imageData = typeof result === "string" ? result : (result?.image ?? result);
+        const imageHeaders = { "content-type": "image/png", "cache-control": "no-store" };
+
         if (typeof imageData === "string" && imageData.length > 0) {
-          return new Response(base64ToBytes(imageData), {
-            headers: { "content-type": "image/png", "cache-control": "no-store" }
-          });
+          return new Response(base64ToBytes(imageData), { headers: imageHeaders });
+        }
+        if (imageData instanceof Uint8Array) {
+          return new Response(imageData, { headers: imageHeaders });
+        }
+        if (imageData instanceof ArrayBuffer) {
+          return new Response(imageData, { headers: imageHeaders });
+        }
+        if (ArrayBuffer.isView(imageData)) {
+          return new Response(new Uint8Array(imageData.buffer, imageData.byteOffset, imageData.byteLength), { headers: imageHeaders });
+        }
+        if (imageData instanceof Blob) {
+          return new Response(imageData, { headers: imageHeaders });
         }
 
         return json({
-          error: result?.error || "The rendering model returned an unexpected response."
+          error: result?.error || "The rendering model returned an unsupported image response."
         }, 502);
       } catch (error) {
-        console.error("RenderFlow generation error:", error);
+        console.error("WRENDERFLOW generation error:", error);
         return json({ error: error?.message || "Rendering failed. Please try again." }, 500);
       }
     }
