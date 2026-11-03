@@ -41,16 +41,23 @@ export default {
         const instructions = String(form.get("instructions") || "").slice(0, 1200);
         const preserve = form.get("preserve") === "true";
 
+        const styleGuidance = style === "D5-inspired photorealism"
+          ? "D5 Render-inspired architectural visualization: premium physically based materials, realistic global illumination, soft ambient occlusion, balanced exposure, crisp but natural details, realistic vegetation, subtle warm architectural lighting, high-end professional archviz finish. Avoid over-sharpening, plastic surfaces, excessive bloom, and artificial saturation."
+          : style === "Khmer-inspired contemporary"
+          ? "Subtle contemporary Khmer architectural identity, authentic Khmer proportions and restrained motifs, elegant reinterpretation of Khmer roof lines and screens where already present, refined local stone and timber palette. Avoid Thai temple styling, ornate clichés, or changing the building massing."
+          : "Professional architectural visualization with physically based materials, believable roughness and reflectivity, realistic glass, stone, timber, metal, refined landscaping, balanced exposure and natural color grading.";
+
         const prompt = [
           "Create a high-quality photorealistic architectural visualization by EDITING the supplied reference image.",
           "The supplied image is the source design. Keep the same building and composition.",
           "Rendering style: " + style + ".",
           "Camera/view: " + view + ".",
           "Lighting: " + lighting + ".",
+          styleGuidance,
           preserve
             ? "CRITICAL: preserve the exact building geometry, silhouette, proportions, number of floors, roof shapes, structural layout, openings, doors, windows, site layout and original camera angle. Do not redesign, add, remove, or move architectural elements. Only improve materials, lighting, textures, reflections, shadows and realistic context."
             : "Respect the supplied design while creating a refined architectural interpretation.",
-          "Use physically plausible materials, realistic glass reflections, natural shadows and restrained professional landscaping.",
+          "Use physically plausible materials, realistic glass reflections, natural shadows, accurate material scale, detailed but restrained landscaping, subtle contact shadows, coherent perspective and professional architectural photography composition.",
           instructions
         ].filter(Boolean).join(" ");
 
