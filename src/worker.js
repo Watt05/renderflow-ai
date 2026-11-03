@@ -40,6 +40,7 @@ export default {
         const lighting = String(form.get("lighting") || "Natural daylight").slice(0, 80);
         const instructions = String(form.get("instructions") || "").slice(0, 1200);
         const preserve = form.get("preserve") === "true";
+        const preserveStrength = Math.max(0, Math.min(100, Number(form.get("preserveStrength")) || 0));
 
         const styleGuidance = style === "D5-inspired photorealism"
           ? "D5 Render-inspired architectural visualization: premium physically based materials, realistic global illumination, soft ambient occlusion, balanced exposure, crisp but natural details, realistic vegetation, subtle warm architectural lighting, high-end professional archviz finish. Avoid over-sharpening, plastic surfaces, excessive bloom, and artificial saturation."
@@ -56,7 +57,9 @@ export default {
           "Lighting: " + lighting + ".",
           styleGuidance,
           preserve
-            ? "HARD GEOMETRY LOCK: preserve the exact pixel-space position and shape of the building silhouette, every roof edge, column, beam, wall, stair, railing, door, window, opening, furniture item and visible site element. Keep the exact number of floors and all proportions. Do not add, remove, move, resize, straighten, curve, or replace any architectural element. No crop, zoom, pan, lens change, perspective correction or camera shift. Change ONLY the surface appearance of existing surfaces: material texture, roughness, color, glass reflections, illumination and shadows. Keep the existing background and landscape; do not add new plants, people, objects or context unless explicitly requested."
+            ? (preserveStrength >= 80
+              ? "STRICT STRUCTURE LOCK (" + preserveStrength + "%): the reference image is the immutable architectural blueprint. Preserve the exact silhouette, roof geometry, roof pitch, all edges, columns, beams, walls, stairs, railings, doors, windows, openings, floor count, proportions, site elements, crop, camera position, perspective and framing. Do not add, remove, move, resize, straighten, curve, complete, redesign or replace any architectural element. Change only material appearance, surface texture, reflectivity, illumination and shadows. Keep all existing context unchanged."
+              : "STRUCTURE PRESERVATION (" + preserveStrength + "%): strongly retain the original massing, rooflines, openings, floor count, proportions, layout and camera framing. Do not redesign or invent architectural elements. Limit changes to materials, lighting and restrained context refinement.")
             : "Respect the supplied design while creating a refined architectural interpretation.",
           "Use physically plausible materials, realistic glass reflections, natural shadows, accurate material scale, detailed but restrained landscaping, subtle contact shadows, coherent perspective and professional architectural photography composition.",
           instructions
