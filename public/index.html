@@ -199,6 +199,11 @@ body.focus-mode .rightcol>.card:first-child .compare-stage{max-height:62vh}
 body.focus-mode .top{position:relative;z-index:1300;background:var(--bg)}
 @media(max-width:520px){.preview-head-actions{gap:5px}.preview-head-actions .step{display:none}.focus-toggle{padding:7px 8px;font-size:9px}.material-swatches{gap:5px}.material-swatch{padding:7px 3px}.material-swatch i{height:23px}.lighting-presets{gap:5px}.lighting-preset{padding:7px 8px;font-size:9px}.export-row{padding:0 13px 12px}}
 
+
+/* Account access */
+.account-btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:10px;font-weight:750}
+.account-btn:hover{border-color:#91c94a}.account-modal{position:fixed;inset:0;z-index:5000;background:#080b07a8;backdrop-filter:blur(12px);display:none;place-items:center;padding:18px}.account-modal.open{display:grid}.account-box{width:min(430px,100%);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 28px 90px #0005;position:relative}.account-close{position:absolute;right:16px;top:13px;border:0;background:transparent;color:var(--muted);font-size:24px}.account-brand{font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:850}.account-box h2{font-size:25px;letter-spacing:-.8px;margin:14px 0 5px}.account-sub{font-size:12px;color:var(--muted);margin:0 0 19px}.account-tabs{display:flex;background:var(--soft);border-radius:10px;padding:4px;margin-bottom:15px}.account-tabs button{flex:1;border:0;background:transparent;color:var(--muted);border-radius:8px;padding:9px;font-size:12px;font-weight:750}.account-tabs button.active{background:var(--panel);color:var(--ink);box-shadow:0 2px 8px #00000010}.account-field{margin:11px 0}.account-field label{display:block;font-size:11px;font-weight:750;margin-bottom:6px}.account-field input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);outline:none}.account-submit{width:100%;border:0;border-radius:10px;background:var(--ink);color:var(--bg);padding:13px;font-weight:800;margin-top:7px}.account-submit:disabled{opacity:.55}.account-message{min-height:18px;margin:10px 0 0;color:var(--muted);font-size:11px}.account-guest{width:100%;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);padding:11px;margin-top:8px;font-size:12px;font-weight:700}.account-profile{display:none;align-items:center;gap:8px;font-size:11px;color:var(--muted)}.account-profile button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 10px;border-radius:8px;font-size:10px}@media(max-width:520px){.account-btn{padding:8px 10px;font-size:11px}}
+
 </style>
 </head>
 <body>
@@ -212,8 +217,26 @@ body.focus-mode .top{position:relative;z-index:1300;background:var(--bg)}
   <div class="welcome-progress"><span></span></div>
  </div>
 </div>
+
+<div class="account-modal" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+ <div class="account-box">
+  <button class="account-close" id="accountClose" aria-label="Close">×</button>
+  <div class="account-brand">WRENDERFLOW / YOUR WORKSPACE</div>
+  <h2 id="accountTitle">Welcome back.</h2>
+  <p class="account-sub">Sign in to keep your architectural work connected to your account.</p>
+  <div class="account-tabs"><button type="button" class="active" id="loginTab">Log in</button><button type="button" id="signupTab">Create account</button></div>
+  <form id="accountForm">
+   <div class="account-field"><label for="accountEmailInput">Email address</label><input id="accountEmailInput" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></div>
+   <div class="account-field"><label for="accountPassword">Password</label><input id="accountPassword" type="password" autocomplete="current-password" required minlength="10" maxlength="128" placeholder="At least 10 characters"></div>
+   <button class="account-submit" id="accountSubmit" type="submit">Log in →</button>
+  </form>
+  <p class="account-message" id="accountMessage" role="status"></p>
+  <button class="account-guest" type="button" id="continueGuest">Continue as guest</button>
+ </div>
+</div>
+
 <div class="shell">
-<header class="top"><div class="brand" aria-label="WRENDERFLOW"><div class="mark" aria-hidden="true"><svg viewBox="0 0 40 32" class="brand-w"><path d="M3 5 L10 27 L19 10 L28 27 L37 5"/></svg></div><div>WRENDERFLOW <small>ARCHITECTURAL VISUAL STUDIO</small></div></div><div class="actions"><a class="about-nav" href="/about.html">About me ↗</a><button class="quiet" id="theme" aria-label="Toggle theme">◐ <span data-i="theme">Theme</span></button><button class="lang" id="language">ខ្មែរ / EN</button></div></header>
+<header class="top"><div class="brand" aria-label="WRENDERFLOW"><div class="mark" aria-hidden="true"><svg viewBox="0 0 40 32" class="brand-w"><path d="M3 5 L10 27 L19 10 L28 27 L37 5"/></svg></div><div>WRENDERFLOW <small>ARCHITECTURAL VISUAL STUDIO</small></div></div><div class="actions"><a class="about-nav" href="/about.html">About me ↗</a><button class="quiet" id="theme" aria-label="Toggle theme">◐ <span data-i="theme">Theme</span></button><button class="lang" id="language">ខ្មែរ / EN</button><button class="account-btn" id="accountOpen">Log in</button><span class="account-profile" id="accountProfile"><span id="accountEmail"></span><button type="button" id="accountLogout">Log out</button></span></div></header>
 <section class="hero"><div><div class="eyebrow" data-i="eyebrow">AI-POWERED ARCHITECTURAL VISUALIZATION</div><h1 data-i="title">From SketchUp to <span style="color:#88b944">stunning reality.</span></h1><p data-i="subtitle">Transform your architectural views into photorealistic concepts.</p></div><div class="status">● <span data-i="beta">Studio preview · Beta</span></div></section>
 <main class="layout">
 <section class="card"><div class="cardhead"><h2 data-i="source">01 — Upload your SketchUp view</h2><span class="step" data-i="sourcehint">PNG / JPG / WEBP · Max 15 MB</span></div>
@@ -471,5 +494,25 @@ if(downloadAnchor){downloadAnchor.addEventListener('click',async e=>{const type=
 
 const welcomeIntro=document.getElementById('welcomeIntro');
 if(welcomeIntro){window.setTimeout(()=>welcomeIntro.remove(),2900);}
+
+/* WRENDERFLOW account session */
+(()=>{
+ const modal=document.getElementById('accountModal'),open=document.getElementById('accountOpen'),close=document.getElementById('accountClose');
+ const form=document.getElementById('accountForm'),msg=document.getElementById('accountMessage'),submit=document.getElementById('accountSubmit');
+ const loginTab=document.getElementById('loginTab'),signupTab=document.getElementById('signupTab'),password=document.getElementById('accountPassword');
+ const profile=document.getElementById('accountProfile'),emailLabel=document.getElementById('accountEmail');
+ let mode='login',signedIn=false;
+ function show(){modal.classList.add('open');msg.textContent='';document.getElementById('accountEmailInput').focus();}
+ function hide(){modal.classList.remove('open');}
+ function setMode(next){mode=next;loginTab.classList.toggle('active',mode==='login');signupTab.classList.toggle('active',mode==='signup');document.getElementById('accountTitle').textContent=mode==='login'?'Welcome back.':'Create your workspace.';document.querySelector('.account-sub').textContent=mode==='login'?'Sign in to keep your architectural work connected to your account.':'Create an account to keep your work connected across sessions.';submit.textContent=mode==='login'?'Log in →':'Create account →';password.autocomplete=mode==='login'?'current-password':'new-password';msg.textContent='';}
+ function updateUser(user){signedIn=!!user;open.style.display=signedIn?'none':'';profile.style.display=signedIn?'flex':'none';if(user)emailLabel.textContent=user.email;}
+ open.addEventListener('click',show);close.addEventListener('click',hide);modal.addEventListener('click',e=>{if(e.target===modal)hide();});document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+ loginTab.addEventListener('click',()=>setMode('login'));signupTab.addEventListener('click',()=>setMode('signup'));document.getElementById('continueGuest').addEventListener('click',hide);
+ form.addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;msg.textContent=mode==='login'?'Signing in…':'Creating your account…';try{const response=await fetch('/api/auth/'+mode,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:document.getElementById('accountEmailInput').value.trim(),password:password.value})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Authentication failed.');updateUser(data.user);msg.textContent=mode==='login'?'You are signed in.':'Your account is ready.';setTimeout(hide,650);form.reset();}catch(err){msg.textContent=err.message;}finally{submit.disabled=false;}});
+ document.getElementById('accountLogout').addEventListener('click',async()=>{try{await fetch('/api/auth/logout',{method:'POST'});}finally{updateUser(null);show();setMode('login');msg.textContent='You have been signed out.';}});
+ fetch('/api/auth/me').then(r=>r.ok?r.json():null).then(d=>{if(d?.user)updateUser(d.user);}).catch(()=>{});
+ window.WRENDERFLOW_ACCOUNT={open:show,isSignedIn:()=>signedIn};
+})();
+
 </script>
 </body></html>
