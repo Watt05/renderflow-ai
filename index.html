@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f5f2"><meta name="description" content="RenderFlow AI — transform SketchUp views into architectural visualizations.">
+<title>RenderFlow AI — Architectural Visualization Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="#" aria-label="RenderFlow home"><span class="brand-mark">R<span>↗</span></span><span>renderflow<span class="brand-ai">.ai</span></span></a>
+  <div class="workspace-label" data-i18n="workspace">WORKSPACE</div>
+  <nav class="main-nav">
+    <button class="nav-item active" data-page="studio"><span class="nav-icon">◫</span><span data-i18n="studio">Render studio</span><kbd>⌘ 1</kbd></button>
+    <button class="nav-item" data-page="gallery"><span class="nav-icon">▦</span><span data-i18n="gallery">Gallery</span></button>
+    <button class="nav-item" data-page="history"><span class="nav-icon">◷</span><span data-i18n="history">History</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="plan-card"><div class="plan-icon">✳</div><div><strong data-i18n="community">Community access</strong><small data-i18n="communitySub">Early preview workspace</small></div><span class="plan-dot"></span></div>
+    <button class="nav-item settings-link" id="settingsBtn"><span class="nav-icon">⚙</span><span data-i18n="settings">Settings</span></button>
+    <div class="profile"><div class="avatar">RF</div><div><strong>RenderFlow</strong><small data-i18n="personalWorkspace">Personal workspace</small></div><span class="more">···</span></div>
+  </div>
+</aside>
+<main class="main-area">
+<header class="topbar"><button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button><div class="breadcrumbs"><span data-i18n="workspace">WORKSPACE</span><b>/</b><strong id="crumb" data-i18n="studio">Render studio</strong></div><div class="top-actions"><span class="status"><i></i><span data-i18n="preview">PREVIEW</span></span><button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">☼</button><button class="lang-btn" id="langBtn">EN <span>⌄</span></button><button class="help-btn" id="helpBtn">? <span data-i18n="help">Help</span></button></div></header>
+<section class="page-content" id="studioPage">
+  <div class="welcome-row"><div><div class="eyebrow" data-i18n="creativeWorkspace">CREATIVE WORKSPACE / 01</div><h1><span data-i18n="turnIdeas">Turn your ideas into</span><br><em data-i18n="visualReality">visual reality.</em></h1><p data-i18n="intro">Bring your SketchUp view. We'll help you shape the atmosphere, materials and light.</p></div><div class="welcome-stamp"><span>RF</span><small>ARCHITECTURAL<br>IMAGE STUDIO</small></div></div>
+  <div class="studio-grid">
+    <section class="panel input-panel">
+      <div class="panel-heading"><div><span class="step">01</span><h2 data-i18n="sourceImage">Source image</h2></div><span class="muted" data-i18n="required">REQUIRED</span></div>
+      <label class="upload-zone" id="uploadZone" for="fileInput"><input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp"><div class="upload-content" id="uploadContent"><div class="upload-symbol">↑</div><strong data-i18n="dropImage">Drop your SketchUp view here</strong><span data-i18n="orBrowse">or <u>browse files</u> from your device</span><small>PNG · JPG · WEBP <b> / </b> MAX 10 MB</small></div><img id="sourcePreview" alt="Uploaded SketchUp preview" hidden><button class="remove-image" id="removeImage" type="button" hidden>×</button></label>
+      <div class="field-row"><div class="field-label"><label for="viewType" data-i18n="viewType">VIEW TYPE</label></div><select id="viewType"><option value="Exterior">Exterior</option><option value="Interior">Interior</option><option value="Aerial / Site">Aerial / Site</option><option value="Detail">Detail</option></select></div>
+      <div class="divider"></div>
+      <div class="panel-heading compact"><div><span class="step">02</span><h2 data-i18n="renderDirection">Render direction</h2></div><span class="muted" data-i18n="chooseStyle">CHOOSE A STYLE</span></div>
+      <div class="style-grid" id="styleGrid">
+        <button class="style-card selected" data-style="Contemporary" style="--swatch:linear-gradient(135deg,#d7d2c6,#79796f)"><span class="style-thumb thumb-modern"></span><b data-i18n="contemporary">Contemporary</b><small data-i18n="cleanLines">Clean lines · refined</small><i>✓</i></button>
+        <button class="style-card" data-style="Minimalist" style="--swatch:linear-gradient(135deg,#e8e5dc,#aaa79d)"><span class="style-thumb thumb-minimal"></span><b data-i18n="minimalist">Minimalist</b><small data-i18n="quietForms">Quiet forms · calm</small><i>✓</i></button>
+        <button class="style-card" data-style="Tropical" style="--swatch:linear-gradient(135deg,#7e9a77,#d5c5a4)"><span class="style-thumb thumb-tropical"></span><b data-i18n="tropical">Tropical</b><small data-i18n="naturalWarm">Natural · warm</small><i>✓</i></button>
+        <button class="style-card" data-style="Khmer contemporary" style="--swatch:linear-gradient(135deg,#b68c60,#4c594b)"><span class="style-thumb thumb-khmer"></span><b data-i18n="khmer">Khmer contemporary</b><small data-i18n="localIdentity">Local identity · modern</small><i>✓</i></button>
+        <button class="style-card" data-style="Luxury" style="--swatch:linear-gradient(135deg,#77746b,#c5b18c)"><span class="style-thumb thumb-luxury"></span><b data-i18n="luxury">Luxury</b><small data-i18n="richMaterials">Rich materials · detail</small><i>✓</i></button>
+        <button class="style-card" data-style="Organic" style="--swatch:linear-gradient(135deg,#b8b8a0,#787e69)"><span class="style-thumb thumb-organic"></span><b data-i18n="organic">Organic</b><small data-i18n="softCurves">Soft curves · nature</small><i>✓</i></button>
+      </div>
+      <div class="field-row"><label for="lighting" data-i18n="lighting">LIGHTING</label><select id="lighting"><option>Natural daylight</option><option>Golden hour</option><option>Overcast soft light</option><option>Blue hour</option><option>Night / architectural lighting</option></select></div>
+      <div class="field-row"><label for="quality" data-i18n="outputQuality">OUTPUT QUALITY</label><select id="quality"><option value="Standard">Standard preview</option><option value="High">High detail (when available)</option></select></div>
+      <div class="field-row"><label for="preserve" data-i18n="geometry">GEOMETRY PROTECTION</label><label class="switch"><input id="preserve" type="checkbox" checked><span></span><b data-i18n="preserve">Preserve original design</b></label></div>
+      <div class="prompt-block"><label for="prompt" data-i18n="extraDirection">EXTRA DIRECTION <span>OPTIONAL</span></label><textarea id="prompt" rows="3" placeholder="e.g. Warm limestone, teak timber screens, lush tropical planting..." data-i18n-placeholder="promptPlaceholder"></textarea><div class="prompt-foot"><span data-i18n="promptHint">Describe materials, atmosphere or details to emphasize.</span><span id="charCount">0 / 500</span></div></div>
+      <button class="generate-btn" id="generateBtn"><span>✳</span><b data-i18n="generate">Generate render</b><span class="button-arrow">↗</span></button><p class="fine-print" data-i18n="engineNote">AI rendering service must be connected before live generation is available.</p>
+    </section>
+    <section class="panel result-panel">
+      <div class="panel-heading"><div><span class="step">03</span><h2 data-i18n="yourResult">Your result</h2></div><button class="subtle-btn" id="resetBtn" data-i18n="reset">Reset ↺</button></div>
+      <div class="result-stage" id="resultStage"><div class="stage-grid"></div><div class="empty-state"><div class="empty-icon">⌁</div><strong data-i18n="renderAppears">Your render will appear here</strong><p data-i18n="renderAppearsSub">Upload a SketchUp view and set your direction to get started.</p><span class="stage-caption">RENDER CANVAS / 01</span></div></div>
+      <div class="result-toolbar"><div><span class="live-dot"></span><span id="resultStatus" data-i18n="waiting">WAITING FOR SOURCE IMAGE</span></div><button class="download-btn" id="downloadBtn" disabled>↓ <span data-i18n="download">Download</span></button></div>
+      <div class="tips-card"><div class="tips-icon">✳</div><div><b data-i18n="proTip">A little pro tip</b><p data-i18n="proTipText">For the most consistent results, use a clear SketchUp view with visible edges, a simple camera angle and minimal UI clutter.</p></div></div>
+      <div class="preserve-note"><span>⌖</span><p data-i18n="preserveNote"><b>Design-first workflow.</b> Geometry protection is enabled by default to help retain your original camera, massing and openings. AI results may still vary.</p></div>
+    </section>
+  </div>
+  <footer class="page-footer"><span>RENDERFLOW AI © 2026</span><span data-i18n="footerTag">MADE FOR ARCHITECTURAL THINKERS</span><span>v0.1.0</span></footer>
+</section>
+<section class="page-content secondary-page" id="galleryPage" hidden><div class="eyebrow">EXPLORE / 02</div><h1 data-i18n="galleryTitle">A place for <em>inspiration.</em></h1><p data-i18n="galleryIntro">Your saved architectural studies and visual experiments will live here.</p><div class="empty-gallery"><span>▦</span><b data-i18n="galleryEmpty">Your gallery is ready for its first render.</b><button class="outline-btn" data-go-studio data-i18n="backStudio">Back to studio ↗</button></div></section>
+<section class="page-content secondary-page" id="historyPage" hidden><div class="eyebrow">WORKSPACE / 03</div><h1 data-i18n="historyTitle">Your creative <em>history.</em></h1><p data-i18n="historyIntro">Recent render activity will appear here once the rendering service is connected.</p><div class="empty-gallery"><span>◷</span><b data-i18n="historyEmpty">No render activity yet.</b><button class="outline-btn" data-go-studio data-i18n="startRender">Start a render ↗</button></div></section>
+</main></div>
+<div class="toast" id="toast" role="status"></div>
+<script src="app.js"></script>
+</body></html>
